@@ -1,0 +1,93 @@
+name: CI
+
+on:
+  push:
+    branches: [main, develop]
+  pull_request:
+    branches: [main]
+
+jobs:
+  server-test:
+    name: Server Tests
+    runs-on: ubuntu-latest
+
+    services:
+      postgres:
+        image: postgres:16-alpine
+        env:
+          POSTGRES_USER: steamblast
+          POSTGRES_PASSWORD: password
+          POSTGRES_DB: steamblast_test
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd pg_isready
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+
+      redis:
+        image: redis:7-alpine
+        ports:
+          - 6379:6379
+
+    env:
+      NODE_ENV: test
+      DATABASE_URL: postgresql://steamblast:password@localhost:5432/steamblast_test
+      REDIS_URL: redis://localhost:6379
+      JWT_SECRET: test_secret_for_ci_only
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Use Node.js 20
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: 'npm'
+
+      - name: Install root dependencies
+        run: npm install
+
+      - name: Install server dependencies
+        run: npm install --workspace=server
+
+      - name: Run server tests
+        run: npm test --workspace=server
+
+  client-build:
+    name: Client Build
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Use Node.js 20
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: 'npm'
+
+      - name: Install dependencies
+        run: npm install
+
+      - name: Build client
+        run: npm run build --workspace=client
+
+      - name: Build admin
+        run: npm run build --workspace=admin
+
+  docker-build:
+    name: Docker Build
+    runs-on: ubuntu-latest
+    if: github.ref == 'refs/heads/main'
+    needs: [server-test, client-build]
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Build server image
+        run: docker build -t steamblast-server:${{ github.sha }} ./server
+
+      - name: Build client image
+        run: docker build -t steamblast-client:${{ github.sha }} ./client
