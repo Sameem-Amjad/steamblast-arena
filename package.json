@@ -16,9 +16,13 @@
     "build": "npm run build --workspace=client && npm run build --workspace=admin",
     "test": "npm run test --workspaces",
     "db:migrate": "npm run migrate --workspace=server",
-    "db:seed": "npm run seed --workspace=server"
+    "db:seed": "npm run seed --workspace=server",
+    "start": "npm start --workspace=server"
   },
   "devDependencies": {
     "concurrently": "^8.2.2"
+  },
+  "engines": {
+    "node": "20.x"
   }
 }

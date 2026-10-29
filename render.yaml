@@ -1,0 +1,18 @@
+# One free Render web service runs the whole demo: the game server (API + Socket.IO), the game
+# client and the admin panel. DEMO_MODE keeps the data in memory and reseeds it on every start.
+services:
+  - type: web
+    name: steamblast-arena-demo
+    runtime: node
+    plan: free
+    branch: demo
+    buildCommand: npm ci --include=dev && npm run build
+    startCommand: npm start
+    healthCheckPath: /health
+    envVars:
+      - key: NODE_ENV
+        value: production
+      - key: DEMO_MODE
+        value: "true"
+      - key: JWT_SECRET
+        generateValue: true

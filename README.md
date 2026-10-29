@@ -56,6 +56,7 @@ steamblast-arena/
 | Feature | Status |
 |---------|--------|
 | Multiplayer game (2–8 players) | ✅ |
+| Bots fill the match when nobody else is online | ✅ |
 | Procedural maze generation | ✅ |
 | Water spray mechanic | ✅ |
 | Chamber (question to respawn) | ✅ |
@@ -72,6 +73,33 @@ steamblast-arena/
 | Admin panel | ✅ |
 | PWA (installable) | ✅ |
 | Docker / CI/CD | ✅ |
+
+## Demo mode
+
+Runs the whole game with no Postgres, Redis, Stripe or SendGrid:
+
+```bash
+npm install
+npm run build
+DEMO_MODE=true JWT_SECRET=any-long-secret npm start
+```
+
+Open http://localhost:3001 (the game) and http://localhost:3001/admin/ (the admin panel).
+
+- The database is in-memory SQLite, rebuilt and reseeded on every start: 102 questions, the shop, three weeks of match history, a teacher with two classes and a premium student.
+- A child who is alone in the queue plays against bots after 3 seconds (`BOT_FILL_SECONDS`).
+- Payments and email are switched off. The shared demo logins can't change their password or time limit, and the demo admin can't remove questions.
+- Demo logins (password `SteamBlast@2026`): `mia@demo.steamblast.app` (premium student), `teacher@demo.steamblast.app`, `admin@demo.steamblast.app`.
+
+`render.yaml` deploys this as one free Render web service.
+
+## Tests
+
+```bash
+npm test --workspace=server
+```
+
+Covers the bots, the room rules (ready-up, the chamber, shields, movement speed), matchmaking and "play again", a full simulated round, and the API with its demo guards. Tests run against the in-memory database.
 
 ## Monetization
 
