@@ -4,6 +4,9 @@ const Filter = require('bad-words');
 const { User, GameSession, GameSessionPlayer } = require('../models');
 const { authenticate, requireRole } = require('../middleware/auth');
 const { validate } = require('../middleware/validation');
+const env = require('../config/env');
+const { isDemoAccount, maskEmail } = require('../demo/accounts');
+const { minutesPlayedToday } = require('../services/analyticsService');
 
 const router = express.Router();
 const filter = new Filter();
@@ -22,11 +25,17 @@ router.patch('/profile',
     body('preferredDifficulty').optional().isInt({ min: 1, max: 3 }),
     body('preferredMode').optional().isIn(['maths', 'literacy', 'mixed']),
     body('avatar').optional().isObject(),
+    body('dailyTimeLimit').optional({ values: 'null' }).isInt({ min: 0, max: 600 }),
   ],
   validate,
   async (req, res) => {
     try {
-      const { displayName, preferredDifficulty, preferredMode, avatar } = req.body;
+      const { displayName, preferredDifficulty, preferredMode, avatar, dailyTimeLimit } = req.body;
+
+      // Visitors share the demo logins, so one of them mustn't lock the rest out.
+      if (dailyTimeLimit !== undefined && env.DEMO_MODE && isDemoAccount(req.user)) {
+        return res.status(403).json({ error: 'Time limits are fixed on the shared demo accounts. Create your own account to try them.' });
+      }
 
       if (displayName) {
         if (!req.user.isPremium) {
@@ -42,6 +51,7 @@ router.patch('/profile',
         ...(preferredDifficulty && { preferredDifficulty }),
         ...(preferredMode && { preferredMode }),
         ...(avatar && { avatar }),
+        ...(dailyTimeLimit !== undefined && { dailyTimeLimit: dailyTimeLimit || null }),
       });
 
       res.json({ user: req.user.toPublic() });
@@ -72,6 +82,8 @@ router.get('/stats', authenticate, async (req, res) => {
       accuracy,
       totalCorrect,
       totalAnswered,
+      minutesToday: Math.round(await minutesPlayedToday(req.user.id)),
+      dailyTimeLimit: req.user.dailyTimeLimit,
       recentSessions: sessions.slice(0, 10),
     });
   } catch (err) {
@@ -107,6 +119,9 @@ router.get('/', authenticate, requireRole('admin'), async (req, res) => {
     order: [['createdAt', 'DESC']],
     attributes: { exclude: ['passwordHash', 'stripeCustomerId'] },
   });
+  if (env.DEMO_MODE) {
+    users.rows = users.rows.map((u) => ({ ...u.toJSON(), email: maskEmail(u.email), parentEmail: maskEmail(u.parentEmail) }));
+  }
   res.json(users);
 });
 

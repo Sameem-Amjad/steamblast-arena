@@ -1,5 +1,3 @@
-process.env.NODE_TLS_REJECT_UNAUTHORIZED = '0';
-
 const http = require('http');
 const { Server } = require('socket.io');
 const app = require('./app');
@@ -22,18 +20,24 @@ registerSocketHandlers(io);
 
 async function start() {
   try {
-    await redis.connect();
-    console.log('Redis connected');
+    if (!env.DEMO_MODE) {
+      await redis.connect();
+      console.log('Redis connected');
+    }
 
     await sequelize.authenticate();
-    console.log('PostgreSQL connected');
+    console.log(`Database connected (${sequelize.getDialect()})`);
 
-    if (env.isDev) {
+    if (env.DEMO_MODE) {
+      await sequelize.sync({ force: true });
+      await require('./demo/seed')();
+      console.log('Demo data seeded');
+    } else if (env.isDev) {
       await sequelize.sync({ alter: false });
     }
 
     server.listen(env.PORT, () => {
-      console.log(`SteamBlast server running on port ${env.PORT} [${env.NODE_ENV}]`);
+      console.log(`SteamBlast server running on port ${env.PORT} [${env.NODE_ENV}${env.DEMO_MODE ? ', demo' : ''}]`);
     });
   } catch (err) {
     console.error('Failed to start server:', err);

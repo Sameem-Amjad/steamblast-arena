@@ -7,8 +7,12 @@ const { authenticate } = require('../middleware/auth');
 const router = express.Router();
 const stripeClient = env.STRIPE_SECRET_KEY ? stripe(env.STRIPE_SECRET_KEY) : null;
 
+const paymentsOff = () => (env.DEMO_MODE
+  ? 'Payments are switched off in this demo. Sign in as the premium demo student to see premium features.'
+  : 'Payments not configured.');
+
 router.post('/create-checkout-session', authenticate, async (req, res) => {
-  if (!stripeClient) return res.status(503).json({ error: 'Payments not configured.' });
+  if (!stripeClient) return res.status(503).json({ error: paymentsOff() });
   try {
     let customerId = req.user.stripeCustomerId;
     if (!customerId) {
@@ -37,7 +41,7 @@ router.post('/create-checkout-session', authenticate, async (req, res) => {
 });
 
 router.post('/cancel-subscription', authenticate, async (req, res) => {
-  if (!stripeClient) return res.status(503).json({ error: 'Payments not configured.' });
+  if (!stripeClient) return res.status(503).json({ error: paymentsOff() });
   try {
     const subscription = await Subscription.findOne({ where: { userId: req.user.id, status: 'active' } });
     if (!subscription) return res.status(404).json({ error: 'No active subscription found.' });

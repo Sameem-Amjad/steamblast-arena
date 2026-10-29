@@ -6,6 +6,8 @@ const { User, Subscription } = require('../models');
 const { authenticate, issueToken } = require('../middleware/auth');
 const { validate } = require('../middleware/validation');
 const { authLimiter } = require('../middleware/rateLimit');
+const env = require('../config/env');
+const { isDemoAccount } = require('../demo/accounts');
 
 const router = express.Router();
 const filter = new Filter();
@@ -99,6 +101,9 @@ router.post('/change-password',
   validate,
   async (req, res) => {
     try {
+      if (env.DEMO_MODE && isDemoAccount(req.user)) {
+        return res.status(403).json({ error: "The demo accounts' passwords can't be changed." });
+      }
       const { currentPassword, newPassword } = req.body;
       if (!(await req.user.checkPassword(currentPassword))) {
         return res.status(401).json({ error: 'Current password is incorrect.' });

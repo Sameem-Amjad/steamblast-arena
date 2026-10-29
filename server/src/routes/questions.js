@@ -2,19 +2,21 @@ const express = require('express');
 const { body, query } = require('express-validator');
 const { Op } = require('sequelize');
 const { Question } = require('../models');
+const env = require('../config/env');
 const { authenticate, requireRole } = require('../middleware/auth');
 const { validate } = require('../middleware/validation');
 
 const router = express.Router();
 
-// Public: get questions filtered by subject/difficulty (for game engine)
+// Teachers and admins browse the bank (answers included, so not for players)
 router.get('/',
   authenticate,
+  requireRole('teacher', 'admin'),
   [
     query('subject').optional().isIn(['maths', 'literacy']),
     query('difficulty').optional().isInt({ min: 1, max: 3 }),
     query('topic').optional().isString(),
-    query('limit').optional().isInt({ min: 1, max: 50 }),
+    query('limit').optional().isInt({ min: 1, max: 200 }),
   ],
   validate,
   async (req, res) => {
@@ -27,7 +29,7 @@ router.get('/',
 
       const questions = await Question.findAll({
         where,
-        order: sequelize.random ? [sequelize.fn('RANDOM')] : [['id', 'ASC']],
+        order: [['subject', 'ASC'], ['difficulty', 'ASC'], ['topic', 'ASC'], ['createdAt', 'ASC']],
         limit: parseInt(limit),
       });
       res.json({ questions });
@@ -85,7 +87,11 @@ router.patch('/:id',
       if (req.user.role !== 'admin' && question.createdByTeacherId !== req.user.id) {
         return res.status(403).json({ error: 'Cannot edit this question.' });
       }
-      await question.update(req.body);
+      if (env.DEMO_MODE && !question.isCustom) {
+        return res.status(403).json({ error: 'The built-in questions are read-only in this demo.' });
+      }
+      const allowed = ['subject', 'topic', 'difficulty', 'questionText', 'options', 'explanation'];
+      await question.update(Object.fromEntries(Object.entries(req.body).filter(([k]) => allowed.includes(k))));
       res.json({ question });
     } catch (err) {
       res.status(500).json({ error: err.message });
@@ -98,6 +104,9 @@ router.delete('/:id',
   requireRole('teacher', 'admin'),
   async (req, res) => {
     try {
+      if (env.DEMO_MODE) {
+        return res.status(403).json({ error: 'Removing questions is switched off in this demo.' });
+      }
       const question = await Question.findByPk(req.params.id);
       if (!question) return res.status(404).json({ error: 'Question not found.' });
       if (req.user.role !== 'admin' && question.createdByTeacherId !== req.user.id) {
@@ -117,6 +126,9 @@ router.post('/bulk-import',
   requireRole('admin'),
   async (req, res) => {
     try {
+      if (env.DEMO_MODE) {
+        return res.status(403).json({ error: 'Bulk import is switched off in this demo.' });
+      }
       const { questions } = req.body;
       if (!Array.isArray(questions)) return res.status(422).json({ error: 'questions must be an array.' });
       const created = await Question.bulkCreate(questions, { validate: true });
