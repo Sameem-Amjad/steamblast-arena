@@ -82,4 +82,15 @@ async function getStudentReport(studentId, classRoomId) {
   };
 }
 
-module.exports = { getClassroomAnalytics, getStudentReport };
+// Minutes of finished rounds a player has played since midnight (server time).
+async function minutesPlayedToday(userId) {
+  const midnight = new Date();
+  midnight.setHours(0, 0, 0, 0);
+  const rows = await GameSessionPlayer.findAll({
+    where: { userId },
+    include: [{ model: GameSession, attributes: ['durationSeconds'], where: { startedAt: { [Op.gte]: midnight } } }],
+  });
+  return rows.reduce((sum, r) => sum + (r.GameSession?.durationSeconds || 0), 0) / 60;
+}
+
+module.exports = { getClassroomAnalytics, getStudentReport, minutesPlayedToday };

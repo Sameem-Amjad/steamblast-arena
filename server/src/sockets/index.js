@@ -1,8 +1,11 @@
 const Matchmaker = require('../game/Matchmaker');
-const { CLIENT } = require('steamblast-shared').events;
+const { CLIENT, SERVER } = require('steamblast-shared').events;
 const jwt = require('jsonwebtoken');
 const env = require('../config/env');
 const { User } = require('../models');
+const { minutesPlayedToday } = require('../services/analyticsService');
+
+const MODES = ['maths', 'literacy', 'mixed'];
 
 function registerSocketHandlers(io) {
   const matchmaker = new Matchmaker(io);
@@ -40,11 +43,34 @@ function registerSocketHandlers(io) {
     next();
   });
 
+  // A parent's daily limit, counted from today's finished rounds.
+  async function timeLimitReached(socket) {
+    if (!socket.user) return false;
+    const user = await User.findByPk(socket.user.id, { attributes: ['id', 'dailyTimeLimit'] });
+    if (!user?.dailyTimeLimit) return false;
+    return (await minutesPlayedToday(user.id)) >= user.dailyTimeLimit;
+  }
+
   io.on('connection', (socket) => {
     console.log(`Socket connected: ${socket.id} (${socket.playerData?.displayName})`);
 
     // ── Matchmaking ────────────────────────────────────────────────────────
-    socket.on(CLIENT.JOIN_MATCHMAKING, ({ mode = 'mixed', difficulty = 1 } = {}) => {
+    socket.on(CLIENT.JOIN_MATCHMAKING, async ({ mode = 'mixed', difficulty = 1 } = {}) => {
+      if (!MODES.includes(mode) || ![1, 2, 3].includes(difficulty)) {
+        socket.emit(SERVER.ERROR, { code: 'bad_request', message: 'Pick a game mode and a level.' });
+        return;
+      }
+      try {
+        if (await timeLimitReached(socket)) {
+          socket.emit(SERVER.ERROR, {
+            code: 'time_limit',
+            message: "You've played your time for today. See you tomorrow!",
+          });
+          return;
+        }
+      } catch (err) {
+        console.error('Time limit check failed:', err.message);
+      }
       matchmaker.joinMatchmaking(socket, {
         mode,
         difficulty,
@@ -58,7 +84,13 @@ function registerSocketHandlers(io) {
 
     // ── Private room ───────────────────────────────────────────────────────
     socket.on(CLIENT.JOIN_ROOM, ({ roomId, mode, difficulty } = {}) => {
-      matchmaker.joinPrivateRoom(socket, { roomId, mode, difficulty, ...socket.playerData });
+      if (typeof roomId !== 'string' || !/^[\w-]{4,40}$/.test(roomId)) return;
+      matchmaker.joinPrivateRoom(socket, {
+        roomId,
+        mode: MODES.includes(mode) ? mode : 'mixed',
+        difficulty: [1, 2, 3].includes(difficulty) ? difficulty : 1,
+        ...socket.playerData,
+      });
     });
 
     socket.on(CLIENT.LEAVE_ROOM, () => {
@@ -104,6 +136,8 @@ function registerSocketHandlers(io) {
       matchmaker.removeSocket(socket.id);
     });
   });
+
+  return matchmaker;
 }
 
 module.exports = registerSocketHandlers;

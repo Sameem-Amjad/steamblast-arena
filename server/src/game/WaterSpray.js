@@ -62,6 +62,11 @@ class WaterSpray {
     return tiles;
   }
 
+  // The tiles this spray covers, before or after it bursts.
+  previewTiles() {
+    return this.expanded ? this.affectedTiles : this._expand();
+  }
+
   hitsTile(tx, ty) {
     if (!this.expanded) return false;
     return this.affectedTiles.some((t) => t.x === tx && t.y === ty);

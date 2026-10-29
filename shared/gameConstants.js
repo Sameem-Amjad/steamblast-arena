@@ -33,6 +33,8 @@ const SPRAY_TTL = 1500; // ms total spray lifetime
 const SHIELD_DURATION = 2000; // ms post-respawn shield
 const SPEED_BONUS_DURATION = 3000; // ms speed boost on fast answer
 const FAST_ANSWER_THRESHOLD = 5; // seconds
+const MOVE_INTERVAL = 150; // ms between steps at speed 1.0
+const SHIELD_POWERUP_DURATION = 5000; // ms of protection from a shield power-up
 
 const PLAYER_DEFAULTS = {
   FREE: {
@@ -126,6 +128,8 @@ module.exports = {
   SHIELD_DURATION,
   SPEED_BONUS_DURATION,
   FAST_ANSWER_THRESHOLD,
+  MOVE_INTERVAL,
+  SHIELD_POWERUP_DURATION,
   PLAYER_DEFAULTS,
   POWERUP_LIMITS,
   SCORE,

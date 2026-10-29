@@ -1,4 +1,4 @@
-const { POWERUP_TYPES, POWERUP_LIMITS } = require('steamblast-shared');
+const { POWERUP_TYPES, POWERUP_LIMITS, SHIELD_POWERUP_DURATION } = require('steamblast-shared');
 
 function applyPowerUp(player, type) {
   switch (type) {
@@ -16,6 +16,7 @@ function applyPowerUp(player, type) {
       break;
     case POWERUP_TYPES.SHIELD:
       player.hasShield = true;
+      player.shieldExpiry = Date.now() + SHIELD_POWERUP_DURATION;
       break;
     case POWERUP_TYPES.SUPER_SPRAY:
       player.superSprayReady = true;
