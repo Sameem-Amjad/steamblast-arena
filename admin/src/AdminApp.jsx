@@ -7,11 +7,15 @@ function AdminLogin({ onLogin }) {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [error, setError] = useState('');
+  const [demo, setDemo] = useState(null);
 
-  const submit = async (e) => {
-    e.preventDefault();
+  useEffect(() => {
+    api.get('/config').then((res) => setDemo(res.data.demoAccounts?.find((a) => a.role === 'admin') || null)).catch(() => {});
+  }, []);
+
+  const signIn = async (credentials) => {
     try {
-      const res = await api.post('/auth/login', { email, password });
+      const res = await api.post('/auth/login', credentials);
       if (res.data.user.role !== 'admin') {
         setError('Admin access required.');
         return;
@@ -23,14 +27,27 @@ function AdminLogin({ onLogin }) {
     }
   };
 
+  const submit = (e) => {
+    e.preventDefault();
+    signIn({ email, password });
+  };
+
   return (
     <div style={{ minHeight: '100vh', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-      <form onSubmit={submit} style={{ background: 'rgba(255,255,255,0.05)', borderRadius: 16, padding: '36px', width: 340, border: '1px solid rgba(255,255,255,0.1)' }}>
+      <form onSubmit={submit} style={{ background: 'rgba(255,255,255,0.05)', borderRadius: 16, padding: '36px', width: 'min(360px, calc(100vw - 32px))', border: '1px solid rgba(255,255,255,0.1)' }}>
         <h2 style={{ color: '#4A90D9', marginBottom: 24, textAlign: 'center' }}>SteamBlast Admin</h2>
         {error && <div style={{ color: '#e74c3c', marginBottom: 12, fontSize: '0.9rem' }}>{error}</div>}
-        <input style={s.input} type="email" placeholder="Admin Email" value={email} onChange={(e) => setEmail(e.target.value)} required />
-        <input style={s.input} type="password" placeholder="Password" value={password} onChange={(e) => setPassword(e.target.value)} required />
-        <button type="submit" style={s.btn}>Sign In</button>
+        <input style={{ ...s.input, width: '100%' }} type="email" placeholder="Admin Email" value={email} onChange={(e) => setEmail(e.target.value)} required />
+        <input style={{ ...s.input, width: '100%' }} type="password" placeholder="Password" value={password} onChange={(e) => setPassword(e.target.value)} required />
+        <button type="submit" style={{ ...s.btn, width: '100%' }}>Sign In</button>
+        {demo && (
+          <div style={{ marginTop: 18, paddingTop: 16, borderTop: '1px solid rgba(255,255,255,0.1)', fontSize: '0.85rem', color: '#aab' }}>
+            <div style={{ marginBottom: 10 }}>Demo: the admin can browse and add questions, but not remove them.</div>
+            <button type="button" onClick={() => signIn({ email: demo.email, password: demo.password })} style={{ ...s.btn, width: '100%', background: 'rgba(241,196,15,0.15)', border: '1px solid rgba(241,196,15,0.4)', color: '#f5e6b0' }}>
+              Sign in as the demo admin
+            </button>
+          </div>
+        )}
       </form>
     </div>
   );
@@ -50,7 +67,7 @@ function QuestionManager() {
     const params = {};
     if (filter.subject) params.subject = filter.subject;
     if (filter.difficulty) params.difficulty = filter.difficulty;
-    const res = await api.get('/questions', { params: { ...params, limit: 100 } });
+    const res = await api.get('/questions', { params: { ...params, limit: 200 } });
     setQuestions(res.data.questions);
     setLoading(false);
   };
@@ -77,14 +94,19 @@ function QuestionManager() {
       setShowForm(false);
       load();
     } catch (err) {
-      setMsg({ type: 'error', text: err.response?.data?.error || 'Failed.' });
+      const errors = err.response?.data?.errors;
+      setMsg({ type: 'error', text: err.response?.data?.error || (errors ? `Check the ${errors[0].path} field.` : 'Failed.') });
     }
     setSaving(false);
   };
 
   const deactivate = async (id) => {
-    await api.delete(`/questions/${id}`);
-    setQuestions((q) => q.filter((qi) => qi.id !== id));
+    try {
+      await api.delete(`/questions/${id}`);
+      setQuestions((q) => q.filter((qi) => qi.id !== id));
+    } catch (err) {
+      setMsg({ type: 'error', text: err.response?.data?.error || 'Could not remove that question.' });
+    }
   };
 
   return (
@@ -94,7 +116,12 @@ function QuestionManager() {
         <button onClick={() => setShowForm(!showForm)} style={s.btn}>+ Add Question</button>
       </div>
 
-      {msg && <div style={{ marginBottom: 12, color: msg.type === 'success' ? '#2ecc71' : '#e74c3c' }}>{msg.text}</div>}
+      {msg && (
+        <div role="status" style={{ position: 'fixed', bottom: 20, left: '50%', transform: 'translateX(-50%)', zIndex: 10, padding: '12px 18px', borderRadius: 10, background: '#16213e', border: `1px solid ${msg.type === 'success' ? '#2ecc71' : '#e74c3c'}`, color: msg.type === 'success' ? '#2ecc71' : '#ff8a80', boxShadow: '0 8px 24px rgba(0,0,0,0.4)', maxWidth: 'calc(100vw - 32px)' }}>
+          {msg.text}
+          <button onClick={() => setMsg(null)} aria-label="Dismiss" style={{ marginLeft: 12, background: 'none', border: 'none', color: '#aab', cursor: 'pointer' }}>✕</button>
+        </div>
+      )}
 
       {showForm && (
         <form onSubmit={handleCreate} style={{ background: 'rgba(255,255,255,0.04)', borderRadius: 14, padding: 24, marginBottom: 24, border: '1px solid rgba(255,255,255,0.1)' }}>

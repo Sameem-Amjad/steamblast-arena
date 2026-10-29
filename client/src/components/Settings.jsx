@@ -10,6 +10,19 @@ export default function Settings() {
   const refreshUser = useUserStore((s) => s.refreshUser);
   const [loading, setLoading] = useState(false);
   const [msg, setMsg] = useState(null);
+  const [joinCode, setJoinCode] = useState('');
+
+  const handleJoinClass = async (e) => {
+    e.preventDefault();
+    try {
+      const res = await api.post('/teacher/join', { joinCode: joinCode.trim().toUpperCase() });
+      setMsg({ type: 'success', text: `You joined ${res.data.classroom.name}!` });
+      setJoinCode('');
+    } catch (err) {
+      const text = err.response?.data?.error || (err.response?.status === 422 ? 'Class codes have 8 letters and numbers.' : 'Could not join that class.');
+      setMsg({ type: 'error', text });
+    }
+  };
 
   const handleUpgrade = async () => {
     setLoading(true);
@@ -57,6 +70,24 @@ export default function Settings() {
             <div style={s.infoRow}><span style={s.label}>Level</span><span>{user.level}</span></div>
             <div style={s.infoRow}><span style={s.label}>Coins</span><span style={{ color: '#f1c40f' }}>🪙 {user.coins}</span></div>
           </div>
+        )}
+
+        {user?.role === 'student' && !user.isGuest && (
+          <form style={s.section} onSubmit={handleJoinClass}>
+            <div style={s.sectionTitle}>Join a class</div>
+            <div style={{ display: 'flex', gap: 10 }}>
+              <input
+                style={s.input}
+                placeholder="8-letter class code"
+                value={joinCode}
+                maxLength={8}
+                onChange={(e) => setJoinCode(e.target.value)}
+                aria-label="Class code"
+              />
+              <button type="submit" style={s.joinBtn} disabled={joinCode.trim().length !== 8}>Join</button>
+            </div>
+            <div style={{ color: '#888', fontSize: '0.8rem', marginTop: 8 }}>Your teacher gives you the code.</div>
+          </form>
         )}
 
         <div style={s.section}>
@@ -111,6 +142,8 @@ const s = {
   label: { color: '#888' },
   upgradeBtn: { width: '100%', padding: '13px', borderRadius: 10, background: 'linear-gradient(135deg, #f1c40f, #e67e22)', border: 'none', color: '#000', fontWeight: 'bold', cursor: 'pointer', fontSize: '1rem' },
   cancelSubBtn: { padding: '10px 20px', borderRadius: 8, background: 'rgba(231,76,60,0.15)', border: '1px solid #e74c3c', color: '#e74c3c', cursor: 'pointer' },
+  input: { flex: 1, minWidth: 0, padding: '10px 14px', borderRadius: 8, border: '1px solid rgba(255,255,255,0.2)', background: 'rgba(255,255,255,0.08)', color: '#fff', fontSize: '0.95rem', outline: 'none', textTransform: 'uppercase' },
+  joinBtn: { padding: '10px 20px', borderRadius: 8, background: '#4A90D9', border: 'none', color: '#fff', cursor: 'pointer', fontWeight: 'bold' },
   logoutBtn: { width: '100%', padding: '12px', borderRadius: 10, background: 'rgba(231,76,60,0.1)', border: '1px solid rgba(231,76,60,0.3)', color: '#e74c3c', cursor: 'pointer', fontSize: '0.95rem' },
   toast: { border: '1px solid', borderRadius: 8, padding: '10px 14px', marginBottom: 16, fontSize: '0.9rem' },
 };

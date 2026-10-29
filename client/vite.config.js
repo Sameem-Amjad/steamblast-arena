@@ -18,12 +18,22 @@ export default defineConfig({
         icons: [
           { src: '/assets/ui/icon-192.png', sizes: '192x192', type: 'image/png' },
           { src: '/assets/ui/icon-512.png', sizes: '512x512', type: 'image/png' },
+          { src: '/assets/ui/icon-512.png', sizes: '512x512', type: 'image/png', purpose: 'maskable' },
         ],
+      },
+      workbox: {
+        // The admin panel and the API are served by the same host; never answer them with the game shell.
+        navigateFallbackDenylist: [/^\/admin/, /^\/api/, /^\/socket\.io/, /^\/health/],
+        maximumFileSizeToCacheInBytes: 3 * 1024 * 1024,
       },
     }),
   ],
   optimizeDeps: {
-    include: ['steamblast-shared'],
+    include: ['steamblast-shared', 'steamblast-shared/gameConstants'],
+  },
+  build: {
+    // The shared workspace package is CommonJS and lives outside node_modules.
+    commonjsOptions: { include: [/shared/, /node_modules/] },
   },
   server: {
     port: 5173,

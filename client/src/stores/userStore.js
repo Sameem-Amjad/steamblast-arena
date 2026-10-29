@@ -6,16 +6,20 @@ export const useUserStore = create((set, get) => ({
   token: null,
   loading: false,
   error: null,
+  // True until a saved session has been checked, so private pages don't bounce to sign-in.
+  restoring: Boolean(localStorage.getItem('token')),
 
   restoreSession: async () => {
     const token = localStorage.getItem('token');
-    if (!token) return;
+    if (!token) return set({ restoring: false });
     try {
       api.defaults.headers.common['Authorization'] = `Bearer ${token}`;
       const res = await api.get('/auth/me');
-      set({ user: res.data.user, token });
+      set({ user: res.data.user, token, restoring: false });
     } catch {
       localStorage.removeItem('token');
+      delete api.defaults.headers.common['Authorization'];
+      set({ restoring: false });
     }
   },
 

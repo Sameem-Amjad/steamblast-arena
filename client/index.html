@@ -2,16 +2,23 @@
 <html lang="en">
   <head>
     <meta charset="UTF-8" />
-    <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
     <meta name="theme-color" content="#4A90D9" />
-    <meta name="description" content="SteamBlast Arena — Multiplayer educational game for kids" />
+    <meta name="description" content="SteamBlast Arena — a multiplayer maths and literacy game for primary school children. Spray water, answer questions to respawn, climb the leaderboard." />
     <link rel="icon" type="image/png" href="/assets/ui/icon-192.png" />
     <link rel="apple-touch-icon" href="/assets/ui/icon-192.png" />
     <title>SteamBlast Arena</title>
     <style>
       * { margin: 0; padding: 0; box-sizing: border-box; }
-      html, body, #root { width: 100%; height: 100%; overflow: hidden; background: #1a1a2e; }
-      body { font-family: 'Segoe UI', system-ui, sans-serif; color: #fff; }
+      html, body { min-height: 100%; background: #1a1a2e; }
+      #root { min-height: 100vh; }
+      body { font-family: 'Segoe UI', system-ui, -apple-system, sans-serif; color: #fff; overscroll-behavior: none; -webkit-tap-highlight-color: transparent; }
+      button, input, select, textarea { font-family: inherit; }
+      button:focus-visible, input:focus-visible, select:focus-visible { outline: 2px solid #ffe066; outline-offset: 2px; }
+      @keyframes sb-spin { to { transform: rotate(360deg); } }
+      @keyframes sb-pop { from { transform: scale(0.85); opacity: 0; } to { transform: scale(1); opacity: 1; } }
+      @keyframes sb-rise { from { transform: translateY(8px); opacity: 0; } to { transform: translateY(0); opacity: 1; } }
+      @media (prefers-reduced-motion: reduce) { *, *::before, *::after { animation-duration: 0.01ms !important; animation-iteration-count: 1 !important; transition-duration: 0.01ms !important; } }
     </style>
   </head>
   <body>

@@ -1,19 +1,36 @@
 import Phaser from 'phaser';
 import BootScene from './BootScene';
 import GameScene from './GameScene';
-import ResultScene from './ResultScene';
 
-export const TILE_SIZE = 48;
-export const COLORS = {
-  WALL: 0x2c3e50,
-  DESTRUCTIBLE: 0x8e6b3e,
-  EMPTY: 0x1e3a2f,
-  WATER: 0x4A90D9,
-  STEAM: 0xe8f4f8,
-  SHIELD: 0xf1c40f,
-  UI_BG: 0x1a1a2e,
-  SCORE_TEXT: 0xf1c40f,
-};
+export const isTouchDevice = () => typeof window !== 'undefined'
+  && window.matchMedia?.('(pointer: coarse)').matches;
+
+// Below this width the scoreboard sits in a strip above the board instead of beside it.
+export const NARROW_WIDTH = 900;
+
+// Room kept clear of the board for the HUD around it and the touch controls below it.
+export function boardInsets(viewWidth) {
+  const narrow = viewWidth < NARROW_WIDTH;
+  return {
+    top: narrow ? 104 : 72,
+    bottom: isTouchDevice() ? 190 : 20,
+    side: narrow ? 8 : 232,
+  };
+}
+
+// Biggest tile size that fits the maze inside the space left between the insets.
+export function boardLayout(maze, viewWidth, viewHeight) {
+  const { top, bottom, side } = boardInsets(viewWidth);
+  const tile = Math.max(16, Math.min(64, Math.floor(Math.min(
+    (viewWidth - 2 * side) / maze.width,
+    (viewHeight - top - bottom) / maze.height,
+  ))));
+  return {
+    tile,
+    offsetX: Math.round((viewWidth - maze.width * tile) / 2),
+    offsetY: Math.round(top + (viewHeight - top - bottom - maze.height * tile) / 2),
+  };
+}
 
 export function createPhaserConfig(parent) {
   return {
@@ -21,18 +38,12 @@ export function createPhaserConfig(parent) {
     parent,
     width: window.innerWidth,
     height: window.innerHeight,
-    backgroundColor: '#1a1a2e',
+    backgroundColor: '#12152a',
     scale: {
       mode: Phaser.Scale.RESIZE,
       autoCenter: Phaser.Scale.CENTER_BOTH,
     },
-    physics: {
-      default: 'arcade',
-      arcade: { debug: false },
-    },
-    scene: [BootScene, GameScene, ResultScene],
-    audio: {
-      disableWebAudio: false,
-    },
+    scene: [BootScene, GameScene],
+    audio: { noAudio: true },
   };
 }
