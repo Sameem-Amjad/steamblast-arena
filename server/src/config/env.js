@@ -21,6 +21,8 @@ const env = {
   CLIENT_URL: process.env.CLIENT_URL || 'http://localhost:5173',
   ADMIN_URL: process.env.ADMIN_URL || 'http://localhost:5174',
   PREMIUM_PRICE_HKD: parseInt(process.env.PREMIUM_PRICE_HKD, 10) || 2000,
+  // Round length in seconds (defaults to the game's two minutes).
+  ROUND_SECONDS: parseInt(process.env.ROUND_SECONDS, 10) || null,
   // Seconds a lone player waits before bots fill the match (0 = never).
   BOT_FILL_SECONDS: process.env.BOT_FILL_SECONDS !== undefined
     ? parseFloat(process.env.BOT_FILL_SECONDS) || 0

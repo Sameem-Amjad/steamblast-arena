@@ -117,7 +117,7 @@ function QuestionManager() {
       </div>
 
       {msg && (
-        <div role="status" style={{ position: 'fixed', bottom: 20, left: '50%', transform: 'translateX(-50%)', zIndex: 10, padding: '12px 18px', borderRadius: 10, background: '#16213e', border: `1px solid ${msg.type === 'success' ? '#2ecc71' : '#e74c3c'}`, color: msg.type === 'success' ? '#2ecc71' : '#ff8a80', boxShadow: '0 8px 24px rgba(0,0,0,0.4)', maxWidth: 'calc(100vw - 32px)' }}>
+        <div role="status" style={{ position: 'fixed', top: 64, left: '50%', transform: 'translateX(-50%)', zIndex: 10, padding: '12px 18px', borderRadius: 10, background: '#16213e', border: `1px solid ${msg.type === 'success' ? '#2ecc71' : '#e74c3c'}`, color: msg.type === 'success' ? '#2ecc71' : '#ff8a80', boxShadow: '0 8px 24px rgba(0,0,0,0.4)', maxWidth: 'calc(100vw - 32px)' }}>
           {msg.text}
           <button onClick={() => setMsg(null)} aria-label="Dismiss" style={{ marginLeft: 12, background: 'none', border: 'none', color: '#aab', cursor: 'pointer' }}>✕</button>
         </div>

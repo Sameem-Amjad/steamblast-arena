@@ -11,6 +11,7 @@ const Bot = require('./Bot');
 const { movePlayer, checkPowerUpCollect } = require('./Physics');
 const { applyPowerUp } = require('./PowerUp');
 const questionService = require('../services/questionService');
+const env = require('../config/env');
 
 const TICK_RATE = 100; // ms
 const MAX_PLAYERS = 8;
@@ -31,7 +32,8 @@ class GameRoom {
     this.sprays = new Map();
     this.maze = null;
     this.powerUps = [];
-    this.timeRemaining = ROUND_DURATION;
+    this.roundSeconds = env.ROUND_SECONDS || ROUND_DURATION;
+    this.timeRemaining = this.roundSeconds;
 
     this._tickInterval = null;
     this._countdownInterval = null;
@@ -165,7 +167,7 @@ class GameRoom {
     }
 
     this.state = ROOM_STATES.PLAYING;
-    this.timeRemaining = ROUND_DURATION;
+    this.timeRemaining = this.roundSeconds;
     this._startedAt = Date.now();
 
     this._emit(SERVER.GAME_START, {
@@ -184,7 +186,7 @@ class GameRoom {
 
     const now = Date.now();
     const elapsed = (now - this._startedAt) / 1000;
-    this.timeRemaining = Math.max(0, ROUND_DURATION - elapsed);
+    this.timeRemaining = Math.max(0, this.roundSeconds - elapsed);
 
     // Tick all active sprays
     const sprayEvents = [];
@@ -597,7 +599,7 @@ class GameRoom {
         mode: this.mode,
         difficulty: this.difficulty,
         playerCount: results.length,
-        durationSeconds: Math.round(ROUND_DURATION - this.timeRemaining),
+        durationSeconds: Math.round(this.roundSeconds - this.timeRemaining),
         startedAt: new Date(this._startedAt),
         endedAt: new Date(),
         winnerId: results[0]?.userId || null,
