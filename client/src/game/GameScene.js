@@ -23,9 +23,12 @@ export default class GameScene extends Phaser.Scene {
     this._layout = null;
     this._lastMoveTime = 0;
     this._lastTouchSpray = 0;
+    this._sprayQueued = false;
 
     this._cursors = this.input.keyboard.createCursorKeys();
-    this._spaceKey = this.input.keyboard.addKey(Phaser.Input.Keyboard.KeyCodes.SPACE);
+    // Queued on keydown: a quick tap can go down and up within one frame.
+    this.input.keyboard.on('keydown-SPACE', () => { this._sprayQueued = true; });
+    this.input.keyboard.addCapture('SPACE');
     this._wasd = this.input.keyboard.addKeys({
       up: Phaser.Input.Keyboard.KeyCodes.W,
       down: Phaser.Input.Keyboard.KeyCodes.S,
@@ -326,9 +329,11 @@ export default class GameScene extends Phaser.Scene {
     }
 
     const state = useGameStore.getState();
-    if (state.gameState !== 'playing') return;
     const me = state.players[state.mySocketId];
-    if (!me || !me.alive || me.inChamber) return;
+    if (state.gameState !== 'playing' || !me || !me.alive || me.inChamber) {
+      this._sprayQueued = false;
+      return;
+    }
 
     const interval = MOVE_INTERVAL / (me.speed || 1);
     if (time - this._lastMoveTime >= interval) {
@@ -344,7 +349,8 @@ export default class GameScene extends Phaser.Scene {
       }
     }
 
-    if (Phaser.Input.Keyboard.JustDown(this._spaceKey) || state.touch.sprayAt > this._lastTouchSpray) {
+    if (this._sprayQueued || state.touch.sprayAt > this._lastTouchSpray) {
+      this._sprayQueued = false;
       this._lastTouchSpray = state.touch.sprayAt;
       emit.spray();
     }

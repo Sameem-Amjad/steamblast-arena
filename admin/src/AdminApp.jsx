@@ -215,7 +215,7 @@ function UserManager() {
 
   return (
     <div style={{ padding: '24px', maxWidth: 1000, margin: '0 auto' }}>
-      <h2 style={{ color: '#4A90D9', marginBottom: 24 }}>Users ({users.length})</h2>
+      <h2 style={{ color: '#4A90D9', marginBottom: 24 }}>Users{!loading && ` (${users.length})`}</h2>
       {loading ? <div style={{ color: '#888' }}>Loading...</div> : (
         <div>
           <div style={{ display: 'grid', gridTemplateColumns: '2fr 1fr 80px 80px 80px', padding: '8px 12px', color: '#888', fontSize: '0.75rem', textTransform: 'uppercase', letterSpacing: 1, marginBottom: 6 }}>
